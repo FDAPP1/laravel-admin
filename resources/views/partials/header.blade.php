@@ -45,9 +45,9 @@
                             </p>
                         </li> -->
                         <li class="user-footer">
-                            <div class="pull-left">
+                            <!-- <div class="pull-left">
                                 <a href="{{ admin_url('auth/setting') }}" class="btn btn-default btn-flat">{{ trans('admin.setting') }}</a>
-                            </div>
+                            </div> -->
                             <div class="pull-right">
                                 <a href="{{ admin_url('auth/logout') }}" class="btn btn-default btn-flat">{{ trans('admin.logout') }}</a>
                             </div>
