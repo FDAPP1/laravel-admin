@@ -12,20 +12,22 @@
             <button type="submit" class="btn btn-primary">{{ trans('admin.submit') }}</button>
         </div>
 
-        @foreach($submit_redirects as $value => $redirect)
+        <!-- formの標準のチェックボックス非表示 -->
+        <!-- @foreach($submit_redirects as $value => $redirect)
             @if(in_array($redirect, $checkboxes))
             <label class="pull-right" style="margin: 5px 10px 0 0;">
                 <input type="checkbox" class="after-submit" name="after-save" value="{{ $value }}" {{ ($default_check == $redirect) ? 'checked' : '' }}> {{ trans("admin.{$redirect}") }}
             </label>
             @endif
-        @endforeach
+        @endforeach -->
 
         @endif
 
-        @if(in_array('reset', $buttons))
+        <!-- formのリセットボタン非表示 -->
+        <!-- @if(in_array('reset', $buttons))
         <div class="btn-group pull-left">
             <button type="reset" class="btn btn-warning">{{ trans('admin.reset') }}</button>
         </div>
-        @endif
+        @endif -->
     </div>
 </div>

@@ -42,7 +42,7 @@ return [
     'description'           => '概要',
     'back'                  => '戻る',
     'back_to_list'          => '一覧へ戻る',
-    'submit'                => '送信',
+    'submit'                => '登録',
     'menu'                  => 'メニュー',
     'input'                 => '入力',
     'succeeded'             => '成功',
