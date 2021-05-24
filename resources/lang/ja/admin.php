@@ -99,4 +99,6 @@ return [
         'filter_placeholder' => 'フィルタ',
     ],
     'menu_titles'           => [],
+
+    'grid_items_selected'    => '{n} 件選択済み',
 ];
