@@ -6,7 +6,7 @@
   <title>{{config('admin.title')}} | {{ trans('admin.login') }}</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  
   @if(!is_null($favicon = Admin::favicon()))
   <link rel="shortcut icon" href="{{$favicon}}">
   @endif
@@ -37,16 +37,15 @@
     <p class="login-box-msg">{{ trans('admin.login') }}</p>
 
     <form action="{{ admin_url('auth/login') }}" method="post">
-      {{ csrf_field() }}
-      <div class="form-group has-feedback {!! !$errors->has('username') ?: 'has-error' !!}">
+      <div class="form-group has-feedback {!! !$errors->has('email') ?: 'has-error' !!}">
 
-        @if($errors->has('username'))
-          @foreach($errors->get('username') as $message)
+        @if($errors->has('email'))
+          @foreach($errors->get('email') as $message)
             <label class="control-label" for="inputError"><i class="fa fa-times-circle-o"></i>{{$message}}</label><br>
           @endforeach
         @endif
 
-        <input type="text" class="form-control" placeholder="{{ trans('admin.username') }}" name="username" value="{{ old('username') }}">
+        <input type="text" class="form-control" placeholder="メールアドレス" name="email" value="{{ old('email') }}">
         <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
       </div>
       <div class="form-group has-feedback {!! !$errors->has('password') ?: 'has-error' !!}">
@@ -57,15 +56,29 @@
           @endforeach
         @endif
 
-        <input type="password" class="form-control" placeholder="{{ trans('admin.password') }}" name="password">
+        <input type="password" class="form-control" placeholder="{{ trans('admin.password') }}" name="password" value="{{ old('password') }}">
         <span class="glyphicon glyphicon-lock form-control-feedback"></span>
       </div>
+
+
+      @if($errors->has('password2fa'))
+        @foreach($errors->get('password2fa') as $message)
+            <label class="control-label" for="inputError">{{$message}}</label><br>
+        @endforeach
+        <div class="form-group has-feedback ">
+          <input type="password2fa" class="form-control" placeholder="{{ trans('admin.password2fa') }}" name="password2fa">
+          <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+        </div>
+      @endif
+
+
+
       <div class="row">
         <div class="col-xs-8">
           @if(config('admin.auth.remember'))
           <div class="checkbox icheck">
             <label>
-              <input type="checkbox" name="remember" value="1" {{ (!old('username') || old('remember')) ? 'checked' : '' }}>
+              <input type="checkbox" name="remember" value="1" {{ (!old('email') || old('remember')) ? 'checked' : '' }}>
               {{ trans('admin.remember_me') }}
             </label>
           </div>

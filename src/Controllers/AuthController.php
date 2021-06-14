@@ -47,13 +47,97 @@ class AuthController extends Controller
         $credentials = $request->only([$this->username(), 'password']);
         $remember = $request->get('remember', false);
 
-        if ($this->guard()->attempt($credentials, $remember)) {
-            return $this->sendLoginResponse($request);
+        $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
+    
+        // if($user->password == Hash::make($request->password2fa)){
+
+        // }else{
+        //     return back()->withInput()->withErrors([
+        //         'password2fa' => 'コードが一致しませんでした。'
+        //     ]);
+        // }
+        
+        //メールアドレスとパスワードが正しいかチェック
+        if(password_verify($request->password, $user->password)){
+
+            //1段階OKなので、2段階認証の内容を作成
+            if(!$request->filled('password2fa')){
+
+                $random_password = '';
+
+                for($i = 0 ; $i < 4 ; $i++) {
+                    $random_password .= strval(rand(0, 9));
+                }
+    
+                $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
+                $user->tfa_token = $random_password;            // 4桁のランダムな数字
+                $user->tfa_expiration = now()->addMinutes(10);  // 10分間だけ有効
+                $user->save();
+    
+                // // メール送信
+                // \Mail::to($user)->send(new TwoFactorAuthPassword($random_password));
+
+
+                // $mailApi = env('MAIL_API');
+                // $url = $mailApi . "?to=XXXXXXX@YYYYYYYY&msg=認証コード:" . $random_password ;
+
+                // // cURLセッションを初期化
+                // $ch = curl_init();
+                
+                // // オプションを設定
+                // curl_setopt($ch, CURLOPT_URL, $url); // 取得するURLを指定
+                // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 実行結果を文字列で返す
+                // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // サーバー証明書の検証を行わない
+                
+                // // URLの情報を取得
+                // $response =  curl_exec($ch);
+                
+                // // // 取得結果を表示
+                // // echo $response;
+                
+                // // セッションを終了
+                // curl_close($ch);
+
+                return back()->withInput()->withErrors([
+                    
+                    'password2fa' => $this->getpassword2faMessageDebug(strval($random_password)),
+                ]);
+            }
+            else{
+                //二段階認証コード入力済みの場合
+
+                $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
+    
+                if($user->tfa_token == $request->password2fa
+                    && $user->tfa_expiration >= now()->subMinutes(10)){
+
+                    if ($this->guard()->attempt($credentials, $remember)) {
+                        return $this->sendLoginResponse($request);
+                    }
+
+                }else{
+                    return back()->withInput()->withErrors([
+                        'password2fa' => 'コードが一致しませんでした。'
+                    ]);
+                }
+    
+                // echo '<script>';
+                // echo 'console.log('.json_encode($user->tfa_token).')';
+                // echo '</script>';
+    
+            }
         }
+
+        // if ($this->guard()->attempt($credentials, $remember)) {
+        //     return $this->sendLoginResponse($request);
+        // }
 
         return back()->withInput()->withErrors([
             $this->username() => $this->getFailedLoginMessage(),
         ]);
+
+
+
     }
 
     /**
@@ -167,6 +251,16 @@ class AuthController extends Controller
             : 'These credentials do not match our records.';
     }
 
+    protected function getpassword2faMessage()
+    {
+        return 'メール送信仮しました';
+    }
+
+    protected function getpassword2faMessageDebug(string $code)
+    {
+        return 'メールアドレスにコードを送信しました。(テスト用に表示:' . $code . ')';
+    }
+
     /**
      * Get the post login redirect path.
      *
@@ -204,7 +298,7 @@ class AuthController extends Controller
      */
     protected function username()
     {
-        return 'username';
+        return 'email';
     }
 
     /**
