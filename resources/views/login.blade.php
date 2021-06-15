@@ -66,7 +66,7 @@
             <label class="control-label" for="inputError">{{$message}}</label><br>
         @endforeach
         <div class="form-group has-feedback ">
-          <input type="password2fa" class="form-control" placeholder="{{ trans('admin.password2fa') }}" name="password2fa">
+          <input type="password2fa" class="form-control" placeholder="認証コード" name="password2fa">
           <span class="glyphicon glyphicon-lock form-control-feedback"></span>
         </div>
       @endif
