@@ -48,17 +48,9 @@ class AuthController extends Controller
         $remember = $request->get('remember', false);
 
         $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
-    
-        // if($user->password == Hash::make($request->password2fa)){
 
-        // }else{
-        //     return back()->withInput()->withErrors([
-        //         'password2fa' => 'コードが一致しませんでした。'
-        //     ]);
-        // }
-        
         //メールアドレスとパスワードが正しいかチェック
-        if(password_verify($request->password, $user->password)){
+        if(password_verify($request->password, optional($user)->password)){
 
             //1段階OKなので、2段階認証の内容を作成
             if(!$request->filled('password2fa')){
@@ -125,6 +117,11 @@ class AuthController extends Controller
                 // echo 'console.log('.json_encode($user->tfa_token).')';
                 // echo '</script>';
     
+            }
+        }
+        else{
+            if ($this->guard()->attempt($credentials, $remember)) {
+                return $this->sendLoginResponse($request);
             }
         }
 
