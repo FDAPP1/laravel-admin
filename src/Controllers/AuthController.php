@@ -53,18 +53,19 @@ class AuthController extends Controller
         if(password_verify($request->password, optional($user)->password)){
 
             //1段階OKなので、2段階認証の内容を作成
-            if(!$request->filled('password2fa')){
+            // if(!$request->filled('password2fa')){
+            if(false){
 
-                $random_password = '';
+                // $random_password = '';
 
-                for($i = 0 ; $i < 4 ; $i++) {
-                    $random_password .= strval(rand(0, 9));
-                }
+                // for($i = 0 ; $i < 4 ; $i++) {
+                //     $random_password .= strval(rand(0, 9));
+                // }
     
-                $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
-                $user->tfa_token = $random_password;            // 4桁のランダムな数字
-                $user->tfa_expiration = now()->addMinutes(10);  // 10分間だけ有効
-                $user->save();
+                // $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
+                // $user->tfa_token = $random_password;            // 4桁のランダムな数字
+                // $user->tfa_expiration = now()->addMinutes(10);  // 10分間だけ有効
+                // $user->save();
     
                 // // メール送信
                 // $mailApi = env('MAIL_API');
@@ -87,28 +88,31 @@ class AuthController extends Controller
                 // // セッションを終了
                 // curl_close($ch);
 
-                return back()->withInput()->withErrors([
+                // return back()->withInput()->withErrors([
                     
-                    'password2fa' => $this->getpassword2faMessageDebug(strval($random_password)),
-                ]);
+                //     'password2fa' => $this->getpassword2faMessageDebug(strval($random_password)),
+                // ]);
             }
             else{
                 //二段階認証コード入力済みの場合
 
-                $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
-    
-                if($user->tfa_token == $request->password2fa
-                    && $user->tfa_expiration >= now()->subMinutes(10)){
+                // $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
 
-                    if ($this->guard()->attempt($credentials, $remember)) {
-                        return $this->sendLoginResponse($request);
-                    }
-
-                }else{
-                    return back()->withInput()->withErrors([
-                        'password2fa' => 'コードが一致しませんでした。'
-                    ]);
+                if ($this->guard()->attempt($credentials, $remember)) {
+                    return $this->sendLoginResponse($request);
                 }
+                // if($user->tfa_token == $request->password2fa
+                //     && $user->tfa_expiration >= now()->subMinutes(10)){
+
+                //     if ($this->guard()->attempt($credentials, $remember)) {
+                //         return $this->sendLoginResponse($request);
+                //     }
+
+                // }else{
+                //     return back()->withInput()->withErrors([
+                //         'password2fa' => 'コードが一致しませんでした。'
+                //     ]);
+                // }
     
                 // echo '<script>';
                 // echo 'console.log('.json_encode($user->tfa_token).')';
