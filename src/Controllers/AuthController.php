@@ -1,117 +1,305 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{config('admin.title')}} | {{ trans('admin.login') }}</title>
-  <!-- Tell the browser to be responsive to screen width -->
-  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-  
-  @if(!is_null($favicon = Admin::favicon()))
-  <link rel="shortcut icon" href="{{$favicon}}">
-  @endif
+<?php
 
-  <!-- Bootstrap 3.3.5 -->
-  <link rel="stylesheet" href="{{ admin_asset("vendor/laravel-admin/AdminLTE/bootstrap/css/bootstrap.min.css") }}">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="{{ admin_asset("vendor/laravel-admin/font-awesome/css/font-awesome.min.css") }}">
-  <!-- Theme style -->
-  <link rel="stylesheet" href="{{ admin_asset("vendor/laravel-admin/AdminLTE/dist/css/AdminLTE.min.css") }}">
-  <!-- iCheck -->
-  <link rel="stylesheet" href="{{ admin_asset("vendor/laravel-admin/AdminLTE/plugins/iCheck/square/blue.css") }}">
+namespace Encore\Admin\Controllers;
 
-  <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-  <!--[if lt IE 9]>
-  <script src="//oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-  <script src="//oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-  <![endif]-->
-</head>
-<body class="hold-transition login-page" @if(config('admin.login_background_image'))style="background: url({{config('admin.login_background_image')}}) no-repeat;background-size: cover;"@endif>
-<div class="login-box">
-  <div class="login-logo">
-    <a href="{{ admin_url('/') }}"><b>{{config('admin.name')}}</b></a>
-  </div>
-  <!-- /.login-logo -->
-  <div class="login-box-body">
-    <p class="login-box-msg">{{ trans('admin.login') }}</p>
+use Encore\Admin\Facades\Admin;
+use Encore\Admin\Form;
+use Encore\Admin\Layout\Content;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Validator;
 
-    <form action="{{ admin_url('auth/login') }}" method="post">
-      <div class="form-group has-feedback {!! !$errors->has('email') ?: 'has-error' !!}">
+class AuthController extends Controller
+{
+    /**
+     * @var string
+     */
+    protected $loginView = 'admin::login';
 
-        @if($errors->has('email'))
-          @foreach($errors->get('email') as $message)
-            <label class="control-label" for="inputError"><i class="fa fa-times-circle-o"></i>{{$message}}</label><br>
-          @endforeach
-        @endif
+    /**
+     * Show the login page.
+     *
+     * @return \Illuminate\Contracts\View\Factory|Redirect|\Illuminate\View\View
+     */
+    public function getLogin()
+    {
+        if ($this->guard()->check()) {
+            return redirect($this->redirectPath());
+        }
 
-        <input type="text" class="form-control" placeholder="メールアドレス" name="email" value="{{ old('email') }}">
-        <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
-      </div>
-      <div class="form-group has-feedback {!! !$errors->has('password') ?: 'has-error' !!}">
+        return view($this->loginView);
+    }
 
-        @if($errors->has('password'))
-          @foreach($errors->get('password') as $message)
-            <label class="control-label" for="inputError"><i class="fa fa-times-circle-o"></i>{{$message}}</label><br>
-          @endforeach
-        @endif
+    /**
+     * Handle a login request.
+     *
+     * @param Request $request
+     *
+     * @return mixed
+     */
+    public function postLogin(Request $request)
+    {
+        $this->loginValidator($request->all())->validate();
 
-        <input type="password" class="form-control" placeholder="{{ trans('admin.password') }}" name="password" value="{{ old('password') }}">
-        <span class="glyphicon glyphicon-lock form-control-feedback"></span>
-      </div>
+        $credentials = $request->only([$this->username(), 'password']);
+        $remember = $request->get('remember', false);
 
+        $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
 
-      @if($errors->has('password2fa'))
-        @foreach($errors->get('password2fa') as $message)
-            <label class="control-label" for="inputError">{{$message}}</label><br>
-        @endforeach
-        <div class="form-group has-feedback ">
-          <input type="password2fa" class="form-control" placeholder="認証コード" name="password2fa">
-          <span class="glyphicon glyphicon-lock form-control-feedback"></span>
-        </div>
-      @endif
+        //メールアドレスとパスワードが正しいかチェック
+        if(password_verify($request->password, optional($user)->password)){
 
+            //1段階OKなので、2段階認証の内容を作成
+            if(!$request->filled('password2fa')){
 
+                $random_password = '';
 
-      <div class="row">
-        <div class="col-xs-8">
-          @if(config('admin.auth.remember'))
-          <div class="checkbox icheck">
-            <label>
-              <input type="checkbox" name="remember" value="1" {{ (!old('email') || old('remember')) ? 'checked' : '' }}>
-              {{ trans('admin.remember_me') }}
-            </label>
-          </div>
-          @endif
-        </div>
-        <!-- /.col -->
-        <div class="col-xs-4">
-          <input type="hidden" name="_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-primary btn-block btn-flat">{{ trans('admin.login') }}</button>
-        </div>
-        <!-- /.col -->
-      </div>
-    </form>
+                for($i = 0 ; $i < 4 ; $i++) {
+                    $random_password .= strval(rand(0, 9));
+                }
+    
+                $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
+                $user->tfa_token = $random_password;            // 4桁のランダムな数字
+                $user->tfa_expiration = now()->addMinutes(10);  // 10分間だけ有効
+                $user->save();
+    
+                // // メール送信
+                // $mailApi = env('MAIL_API');
+                // $url = $mailApi . "?to=" . $user->email . "&msg=認証コード:" . $random_password ;
 
-  </div>
-  <!-- /.login-box-body -->
-</div>
-<!-- /.login-box -->
+                // // cURLセッションを初期化
+                // $ch = curl_init();
+                
+                // // オプションを設定
+                // curl_setopt($ch, CURLOPT_URL, $url); // 取得するURLを指定
+                // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 実行結果を文字列で返す
+                // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // サーバー証明書の検証を行わない
+                
+                // // URLの情報を取得
+                // $response =  curl_exec($ch);
+                
+                // // // 取得結果を表示
+                // // echo $response;
+                
+                // // セッションを終了
+                // curl_close($ch);
 
-<!-- jQuery 2.1.4 -->
-<script src="{{ admin_asset("vendor/laravel-admin/AdminLTE/plugins/jQuery/jQuery-2.1.4.min.js")}} "></script>
-<!-- Bootstrap 3.3.5 -->
-<script src="{{ admin_asset("vendor/laravel-admin/AdminLTE/bootstrap/js/bootstrap.min.js")}}"></script>
-<!-- iCheck -->
-<script src="{{ admin_asset("vendor/laravel-admin/AdminLTE/plugins/iCheck/icheck.min.js")}}"></script>
-<script>
-  $(function () {
-    $('input').iCheck({
-      checkboxClass: 'icheckbox_square-blue',
-      radioClass: 'iradio_square-blue',
-      increaseArea: '20%' // optional
-    });
-  });
-</script>
-</body>
-</html>
+                return back()->withInput()->withErrors([
+                    
+                    'password2fa' => $this->getpassword2faMessageDebug(strval($random_password)),
+                ]);
+            }
+            else{
+                //二段階認証コード入力済みの場合
+
+                $user = \Encore\Admin\Auth\Database\Administrator::where('email', $request->email)->first();
+    
+                if($user->tfa_token == $request->password2fa
+                    && $user->tfa_expiration >= now()->subMinutes(10)){
+
+                    if ($this->guard()->attempt($credentials, $remember)) {
+                        return $this->sendLoginResponse($request);
+                    }
+
+                }else{
+                    return back()->withInput()->withErrors([
+                        'password2fa' => 'コードが一致しませんでした。'
+                    ]);
+                }
+    
+                // echo '<script>';
+                // echo 'console.log('.json_encode($user->tfa_token).')';
+                // echo '</script>';
+    
+            }
+        }
+        else{
+            if ($this->guard()->attempt($credentials, $remember)) {
+                return $this->sendLoginResponse($request);
+            }
+        }
+
+        // if ($this->guard()->attempt($credentials, $remember)) {
+        //     return $this->sendLoginResponse($request);
+        // }
+
+        return back()->withInput()->withErrors([
+            $this->username() => $this->getFailedLoginMessage(),
+        ]);
+
+    }
+
+    /**
+     * Get a validator for an incoming login request.
+     *
+     * @param array $data
+     *
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function loginValidator(array $data)
+    {
+        return Validator::make($data, [
+            $this->username()   => 'required',
+            'password'          => 'required',
+        ]);
+    }
+
+    /**
+     * User logout.
+     *
+     * @return Redirect
+     */
+    public function getLogout(Request $request)
+    {
+        $this->guard()->logout();
+
+        $request->session()->invalidate();
+
+        return redirect(config('admin.route.prefix'));
+    }
+
+    /**
+     * User setting page.
+     *
+     * @param Content $content
+     *
+     * @return Content
+     */
+    public function getSetting(Content $content)
+    {
+        $form = $this->settingForm();
+        $form->tools(
+            function (Form\Tools $tools) {
+                $tools->disableList();
+                $tools->disableDelete();
+                $tools->disableView();
+            }
+        );
+
+        return $content
+            ->title(trans('admin.user_setting'))
+            ->body($form->edit(Admin::user()->id));
+    }
+
+    /**
+     * Update user setting.
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function putSetting()
+    {
+        return $this->settingForm()->update(Admin::user()->id);
+    }
+
+    /**
+     * Model-form for user setting.
+     *
+     * @return Form
+     */
+    protected function settingForm()
+    {
+        $class = config('admin.database.users_model');
+
+        $form = new Form(new $class());
+
+        $form->display('username', trans('admin.username'));
+        $form->text('name', trans('admin.name'))->rules('required');
+        $form->image('avatar', trans('admin.avatar'));
+        $form->password('password', trans('admin.password'))->rules('confirmed|required');
+        $form->password('password_confirmation', trans('admin.password_confirmation'))->rules('required')
+            ->default(function ($form) {
+                return $form->model()->password;
+            });
+
+        $form->setAction(admin_url('auth/setting'));
+
+        $form->ignore(['password_confirmation']);
+
+        $form->saving(function (Form $form) {
+            if ($form->password && $form->model()->password != $form->password) {
+                $form->password = Hash::make($form->password);
+            }
+        });
+
+        $form->saved(function () {
+            admin_toastr(trans('admin.update_succeeded'));
+
+            return redirect(admin_url('auth/setting'));
+        });
+
+        return $form;
+    }
+
+    /**
+     * @return string|\Symfony\Component\Translation\TranslatorInterface
+     */
+    protected function getFailedLoginMessage()
+    {
+        return Lang::has('auth.failed')
+            ? trans('auth.failed')
+            : 'These credentials do not match our records.';
+    }
+
+    protected function getpassword2faMessage()
+    {
+        return 'メール送信仮しました';
+    }
+
+    protected function getpassword2faMessageDebug(string $code)
+    {
+        return 'メールアドレスにコードを送信しました。(テスト用に表示:' . $code . ')';
+    }
+
+    /**
+     * Get the post login redirect path.
+     *
+     * @return string
+     */
+    protected function redirectPath()
+    {
+        if (method_exists($this, 'redirectTo')) {
+            return $this->redirectTo();
+        }
+
+        return property_exists($this, 'redirectTo') ? $this->redirectTo : config('admin.route.prefix');
+    }
+
+    /**
+     * Send the response after the user was authenticated.
+     *
+     * @param \Illuminate\Http\Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    protected function sendLoginResponse(Request $request)
+    {
+        admin_toastr(trans('admin.login_successful'));
+
+        $request->session()->regenerate();
+
+        return redirect()->intended($this->redirectPath());
+    }
+
+    /**
+     * Get the login username to be used by the controller.
+     *
+     * @return string
+     */
+    protected function username()
+    {
+        return 'email';
+    }
+
+    /**
+     * Get the guard to be used during authentication.
+     *
+     * @return \Illuminate\Contracts\Auth\StatefulGuard
+     */
+    protected function guard()
+    {
+        return Admin::guard();
+    }
+}
