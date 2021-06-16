@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+  
     /**
      * @var string
      */
