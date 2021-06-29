@@ -70,6 +70,10 @@ class Filter implements Renderable
         'contains'   => Filter\Like::class,
         'startsWith' => Filter\StartsWith::class,
         'endsWith'   => Filter\EndsWith::class,
+        'orWhere'    => Filter\OrWhere::class,
+        'orWhereIn'  => Filter\OrWhereIn::class,
+        'orWhereBetween'  => Filter\OrWhereBetween::class,
+        'orWhereEqual'  => Filter\OrWhereEqual::class,
     ];
 
     /**
