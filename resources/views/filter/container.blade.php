@@ -1,6 +1,7 @@
 <?php
-  $current_action_name = explode('.', Route::currentRouteName())[1];
-  $session_key_name = $current_action_name . "_search_condition";
+  // $current_action_name = explode('.', Route::currentRouteName())[1];
+  // $session_key_name = $current_action_name . "_search_condition";
+  $andOr = array_key_exists('andor', $_REQUEST) ? $_REQUEST['andor'] : null;
 ?>
 <div class="box-header with-border {{ $expand?'':'hide' }} filter-box" id="{{ $filterID }}">
     <form action="{!! $action !!}" class="form-horizontal" pjax-container method="get">
@@ -22,20 +23,18 @@
 
         <div class="box-footer">
             <div class="row">
-                <div class="col-md-10">
-                  <div class="col-md-2"></div>
-                  <div class="col-md-4">
+                <div class="col-md-12 text-center">
                     <!-- AND/OR -->
-                    <label for="sel01" class="col-md-4 text-md-right">各項目を</label>
-                    <div class="col-md-4">
-                       <select class="form-control" id="andor" name="andor">
-                         <option value="AND" @if (session($session_key_name) && session($session_key_name) == "AND")selected @endif >AND</option>
-                         <option value="OR" @if (session($session_key_name) && session($session_key_name) == "OR")selected @endif>OR</option>
+                    <div class="col-md-5 text-right">
+                    <label for="sel01" text-md-right">各項目間の検索方法：</label>
+                    </div>
+                    <div class="col-md-1 text-left">
+                       <select class="form-select form-select-lg mb-3" id="andor" name="andor">
+                         <option value="AND" @if ($andOr == "AND")selected @endif >AND</option>
+                         <option value="OR" @if ($andOr == "OR")selected @endif>OR</option>
                        </select>
                     </div>
-                    <label for="sel01" class="col-md-4 text-md-right">で</label>
-                  </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6 text-left">
                         <div class="btn-group pull-left">
                             <button class="btn btn-info submit btn-sm"><i
                                         class="fa fa-search"></i>&nbsp;&nbsp;{{ trans('admin.search') }}</button>
