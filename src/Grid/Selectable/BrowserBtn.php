@@ -13,7 +13,7 @@ class BrowserBtn implements Renderable
         $html = <<<HTML
 <a href="javascript:void(0)" class="btn btn-primary btn-sm pull-left select-relation">
     <i class="glyphicon glyphicon-folder-open"></i>
-    &nbsp;&nbsp;{$text}
+    {$text}
 </a>
 HTML;
 
